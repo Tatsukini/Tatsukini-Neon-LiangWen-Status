@@ -141,11 +141,22 @@ export function activate(context) {
         ctx.beginPath(); ctx.arc(cx, ay, d / 2, 0, Math.PI * 2); ctx.stroke();
       }
 
+      // status-char logic (mirrors the desktop exe, minus API-only states 满/停/崩/活):
+      // 梁文 fixed gray, last char swaps 峰/谷 and takes the accent color.
+      const statusChar = info.isPeak ? '峰' : '谷';
       const nameY = showAvatar ? ay + d / 2 + body.h * 0.13 : body.y + body.h * 0.4;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#fff';
+      ctx.textBaseline = 'middle';
       ctx.font = 'bold ' + Math.round(body.h * 0.16) + 'px "Microsoft YaHei UI", sans-serif';
-      ctx.fillText(info.isPeak ? '梁文峰' : '梁文谷', cx, nameY);
+      const base = '梁文';
+      const bw = ctx.measureText(base).width;
+      const sw = ctx.measureText(statusChar).width;
+      let startX = cx - (bw + sw) / 2;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#9E9E9E';
+      ctx.fillText(base, startX, nameY);
+      ctx.fillStyle = accent;
+      ctx.fillText(statusChar, startX + bw, nameY);
+      ctx.textAlign = 'center';
 
       ctx.fillStyle = accent;
       ctx.font = Math.round(body.h * 0.09) + 'px "Microsoft YaHei UI", sans-serif';
