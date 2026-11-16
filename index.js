@@ -109,8 +109,8 @@ export function activate(context) {
     name: '梁文峰/谷 状态',
     code: 'LIANGWEN',
     glyph: '梁',
-    about: 'DeepSeek 峰谷价状态徽章：头像档位 + 切换倒计时 + 梁文峰/谷，纯本地计算。',
-    w: 360, h: 260, category: 'PLUGIN',
+    about: 'DeepSeek 峰谷价状态徽章：仿桌面挂件五模块布局（倒计时 / 头像档位 / 梁文峰谷 / 时段描述 / API 充值），纯本地计算，不联网。',
+    w: 300, h: 400, category: 'PLUGIN',
     options: [
       { key: 'showAvatar', label: '显示头像', type: 'toggle', default: true },
       { key: 'dim', label: '背景压暗', type: 'range', min: 0, max: 60, step: 5, default: 0, unit: '%' },
@@ -118,7 +118,9 @@ export function activate(context) {
     draw(ctx, mod, body, frame, state) {
       const now = Date.now();
       const info = compute(now);
-      const accent = info.isPeak ? '#F48FB1' : '#81D4FA';
+      const isPeak = info.isPeak;
+      const PINK = '#F48FB1', BLUE = '#81D4FA', GRAY = '#9E9E9E', LGRAY = '#BDBDBD', WHITE = '#FFFFFF';
+      const accent = isPeak ? PINK : BLUE;
       const showAvatar = mod.options?.showAvatar !== false;
       const dim = Number(mod.options?.dim ?? 0) / 100;
 
@@ -126,41 +128,92 @@ export function activate(context) {
       ctx.fillStyle = '#000';
       ctx.fillRect(body.x, body.y, body.w, body.h);
 
-      const cx = body.x + body.w / 2;
-      const d = Math.min(body.w, body.h) * 0.5;
-      const ay = body.y + d / 2 + 12;
+      const m = Math.max(6, body.w * 0.03);
+      const gap = Math.max(4, body.h * 0.02);
+      const ix = body.x + m, iy = body.y + m;
+      const iw = body.w - 2 * m, ih = body.h - 2 * m;
 
+      const h1 = ih * 0.15, h3 = ih * 0.15, h4 = ih * 0.15;
+      const h2 = ih - h1 - h3 - h4 - 3 * gap;
+      const y1 = iy, y2 = y1 + h1 + gap, y3 = y2 + h2 + gap, y4 = y3 + h3 + gap;
+
+      const grad = (i) => {
+        const t = i / 4;
+        const r = Math.round(0xF4 + (0x81 - 0xF4) * t);
+        const g = Math.round(0x8F + (0xD4 - 0x8F) * t);
+        const b = Math.round(0xB1 + (0xFA - 0xB1) * t);
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+      };
+      const lw = Math.max(1.5, body.w * 0.006);
+      const panel = (x, y, w, h, color) => {
+        ctx.lineWidth = lw; ctx.strokeStyle = color;
+        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      };
+
+      const colGap = gap;
+      const w4 = (iw - colGap) / 2, w5 = w4;
+      const x5 = ix + w4 + colGap;
+
+      panel(ix, y1, iw, h1, grad(0));
+      panel(ix, y2, iw, h2, grad(1));
+      panel(ix, y3, iw, h3, grad(2));
+      panel(ix, y4, w4, h4, grad(3));
+      panel(x5, y4, w5, h4, grad(4));
+
+      const cx = ix + iw / 2;
+
+      // M1: 峰/谷 倒计时
+      ctx.textBaseline = 'middle';
+      ctx.font = Math.round(h1 * 0.42) + 'px "Microsoft YaHei UI", sans-serif';
+      const runs = [['峰', PINK], ['/', WHITE], ['谷', BLUE], [' 倒计时 ', WHITE], [fmt(info.remainMs), WHITE]];
+      let total = 0;
+      for (const r of runs) total += ctx.measureText(r[0]).width;
+      let sx = cx - total / 2;
+      ctx.textAlign = 'left';
+      for (const r of runs) { ctx.fillStyle = r[1]; ctx.fillText(r[0], sx, y1 + h1 / 2); sx += ctx.measureText(r[0]).width; }
+
+      // M2: avatar + 梁文X
+      const statusChar = isPeak ? '峰' : '谷';
+      const base = '梁文';
       if (showAvatar) {
+        const d = Math.min(iw, h2) * 0.42;
+        const ax = cx, ay = y2 + d / 2 + h2 * 0.06;
         const img = getImage(state, info.frameIndex);
         ctx.save();
-        ctx.beginPath(); ctx.arc(cx, ay, d / 2, 0, Math.PI * 2); ctx.clip();
-        if (img && img.complete && img.naturalWidth) ctx.drawImage(img, cx - d / 2, ay - d / 2, d, d);
-        else { ctx.fillStyle = '#111'; ctx.fillRect(cx - d / 2, ay - d / 2, d, d); }
+        ctx.beginPath(); ctx.arc(ax, ay, d / 2, 0, Math.PI * 2); ctx.clip();
+        if (img && img.complete && img.naturalWidth) ctx.drawImage(img, ax - d / 2, ay - d / 2, d, d);
+        else { ctx.fillStyle = '#111'; ctx.fillRect(ax - d / 2, ay - d / 2, d, d); }
         ctx.restore();
-        ctx.lineWidth = 2; ctx.strokeStyle = accent;
-        ctx.beginPath(); ctx.arc(cx, ay, d / 2, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = lw; ctx.strokeStyle = BLUE;
+        ctx.beginPath(); ctx.arc(ax, ay, d / 2, 0, Math.PI * 2); ctx.stroke();
+        ctx.font = 'bold ' + Math.round(h2 * 0.30) + 'px "Microsoft YaHei UI", sans-serif';
+        const bw = ctx.measureText(base).width, sw = ctx.measureText(statusChar).width;
+        const startX = cx - (bw + sw) / 2, charY = ay + d / 2 + h2 * 0.22;
+        ctx.fillStyle = GRAY; ctx.fillText(base, startX, charY);
+        ctx.fillStyle = accent; ctx.fillText(statusChar, startX + bw, charY);
+      } else {
+        ctx.font = 'bold ' + Math.round(h2 * 0.34) + 'px "Microsoft YaHei UI", sans-serif';
+        const bw = ctx.measureText(base).width, sw = ctx.measureText(statusChar).width;
+        const startX = cx - (bw + sw) / 2;
+        ctx.fillStyle = GRAY; ctx.fillText(base, startX, y2 + h2 / 2);
+        ctx.fillStyle = accent; ctx.fillText(statusChar, startX + bw, y2 + h2 / 2);
       }
 
-      // status-char logic (mirrors the desktop exe, minus API-only states 满/停/崩/活):
-      // 梁文 fixed gray, last char swaps 峰/谷 and takes the accent color.
-      const statusChar = info.isPeak ? '峰' : '谷';
-      const nameY = showAvatar ? ay + d / 2 + body.h * 0.13 : body.y + body.h * 0.4;
-      ctx.textBaseline = 'middle';
-      ctx.font = 'bold ' + Math.round(body.h * 0.16) + 'px "Microsoft YaHei UI", sans-serif';
-      const base = '梁文';
-      const bw = ctx.measureText(base).width;
-      const sw = ctx.measureText(statusChar).width;
-      let startX = cx - (bw + sw) / 2;
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#9E9E9E';
-      ctx.fillText(base, startX, nameY);
-      ctx.fillStyle = accent;
-      ctx.fillText(statusChar, startX + bw, nameY);
+      // M3: 时段描述（纯本地）
       ctx.textAlign = 'center';
+      ctx.fillStyle = LGRAY;
+      ctx.font = Math.round(h3 * 0.4) + 'px "Microsoft YaHei UI", sans-serif';
+      ctx.fillText(isPeak ? '当前：峰价时段' : '当前：谷价时段', cx, y3 + h3 / 2);
 
-      ctx.fillStyle = accent;
-      ctx.font = Math.round(body.h * 0.09) + 'px "Microsoft YaHei UI", sans-serif';
-      ctx.fillText(fmt(info.remainMs) + (info.isPeak ? ' 后进谷' : ' 后进峰'), cx, nameY + body.h * 0.14);
+      // M4: API 充值（静态标签，不可点击）
+      ctx.fillStyle = PINK;
+      ctx.font = Math.round(h4 * 0.4) + 'px "Microsoft YaHei UI", sans-serif';
+      ctx.fillText('API 充值', ix + w4 / 2, y4 + h4 / 2);
+
+      // M5: 余额（需 API，插件模式不查询）
+      ctx.fillStyle = LGRAY;
+      ctx.font = Math.round(h4 * 0.34) + 'px "Microsoft YaHei UI", sans-serif';
+      ctx.fillText('余量：需 API', x5 + w5 / 2, y4 + h4 / 2);
 
       if (dim > 0) { ctx.fillStyle = 'rgba(0,0,0,' + dim + ')'; ctx.fillRect(body.x, body.y, body.w, body.h); }
       ctx.restore();
