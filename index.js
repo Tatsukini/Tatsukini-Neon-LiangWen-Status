@@ -1,7 +1,8 @@
 // NEON//SCOPE plugin: 梁文 峰谷/DeepSeek 状态徽章 (apiVersion 1)
 // 完全仿照桌面挂件：五段式布局 + 实时余额 + 峰谷状态字。
 // 联网查询 DeepSeek /user/balance（context.net.fetch，CORS 失败自动走本机代理）；
-// API Key / 背景图等配置放在 context.settings，只存本机、不写入 .NEON 工程存档。
+// 敏感项 API Key / Base URL / 轮询 / 超时放在 context.settings（只存本机、不写入 .NEON 工程存档），
+// 非敏感项 模型 / 背景图 / 显示头像 / 压暗 作为模块 options（随模块保存、可在「模块专属」里调）。
 // 峰/谷日历为纯本地计算；头像帧来自 MIT 许可 meme 图，见 THIRD-PARTY-NOTICES.md。
 
 const FRAMES = [
@@ -147,12 +148,19 @@ function readCfg() {
   cfg = {
     apiKey: String(CTX.settings.get('apiKey', '') || ''),
     baseUrl: String(CTX.settings.get('baseUrl', 'https://api.deepseek.com') || 'https://api.deepseek.com'),
-    model: String(CTX.settings.get('model', 'flash') || 'flash'),
     pollIntervalSec: clampNum(CTX.settings.get('pollIntervalSec', 60), 5, 600, 60),
     timeoutSec: clampNum(CTX.settings.get('timeoutSec', 12), 1, 60, 12),
-    background: String(CTX.settings.get('background', '') || ''),
-    showAvatar: CTX.settings.get('showAvatar', true) !== false,
-    dim: clampNum(CTX.settings.get('dim', 0), 0, 60, 0) / 100,
+  };
+}
+
+// 非敏感项（模型 / 背景图 / 显示头像 / 压暗）来自模块 options，按模块独立保存
+function readOpts(mod) {
+  const o = (mod && mod.options) || {};
+  return {
+    model: (o.model === 'pro' ? 'pro' : 'flash'),
+    background: String(o.background || ''),
+    showAvatar: o.showAvatar !== false,
+    dim: clampNum(o.dim, 0, 60, 0) / 100,
   };
 }
 
@@ -163,9 +171,9 @@ function setCache(health, balance, currency, detail, latency) {
   cache.health = health; cache.balance = balance; cache.currency = currency; cache.detail = detail; cache.latency = latency;
 }
 
-function tokenEstimate() {
+function tokenEstimate(model) {
   if (cache.balance === null) return { miss: null, hit: null, out: null };
-  const p = PRICING[cfg.model] || PRICING.flash;
+  const p = PRICING[model] || PRICING.flash;
   return { miss: cache.balance * 1e6 / p.miss, hit: cache.balance * 1e6 / p.hit, out: cache.balance * 1e6 / p.out };
 }
 
@@ -206,9 +214,9 @@ function schedulePoll() {
   pollTimer = setInterval(poll, Math.max(5, cfg.pollIntervalSec) * 1000);
 }
 
-function resolveStatus(info) {
+function resolveStatus(info, model) {
   const now = Date.now();
-  const est = tokenEstimate();
+  const est = tokenEstimate(model);
   if (cache.health === 'down') return { ch: '崩', color: COLORS.grayD };
   if (now < reviveUntil) return { ch: '活', color: COLORS.green };
   if (cache.health === 'crowded') return { ch: '满', color: COLORS.yellow };
@@ -229,12 +237,8 @@ export function activate(context) {
   context.settings.define([
     { key: 'apiKey', label: 'API Key', type: 'password', maxLength: 200, help: '只保存在本机，不写入工程存档' },
     { key: 'baseUrl', label: 'Base URL', type: 'text', default: 'https://api.deepseek.com', maxLength: 200 },
-    { key: 'model', label: '模型', type: 'select', options: [['flash', 'flash'], ['pro', 'pro']], default: 'flash' },
     { key: 'pollIntervalSec', label: '轮询间隔(秒)', type: 'number', min: 5, max: 600, default: 60 },
     { key: 'timeoutSec', label: '超时(秒)', type: 'number', min: 1, max: 60, default: 12 },
-    { key: 'background', label: '背景图', type: 'image' },
-    { key: 'showAvatar', label: '显示头像', type: 'toggle', default: true },
-    { key: 'dim', label: '背景压暗', type: 'range', min: 0, max: 60, step: 5, default: 0, unit: '%' },
   ]);
   readCfg();
 
@@ -254,14 +258,20 @@ export function activate(context) {
     name: '梁文 状态徽章',
     code: 'LIANGWEN',
     glyph: '梁',
-    about: '仿桌面挂件：峰谷倒计时 + 头像档位 + 梁文状态字 + 实时余额。配置在插件管理器「设置」里填写。',
+    about: '仿桌面挂件：峰谷倒计时 + 头像档位 + 梁文状态字 + 实时余额。API Key 等在插件管理器「设置」里填写，模型/背景/头像/压暗在本模块「模块专属」里调整。',
     w: 300, h: 400, category: 'PLUGIN',
-    options: [],
+    options: [
+      { key: 'model', label: '模型', type: 'select', default: 'flash', options: [['flash', 'flash'], ['pro', 'pro']], help: '用于把余额换算成 token 档位' },
+      { key: 'background', label: '背景图', type: 'image', help: '导入一张图作为模块背景（cover 铺满）' },
+      { key: 'showAvatar', label: '显示头像', type: 'toggle', default: true },
+      { key: 'dim', label: '背景压暗(%)', type: 'range', min: 0, max: 60, step: 1, default: 0 },
+    ],
     draw(ctx, mod, body, frame, state) {
+      const opts = readOpts(mod);
       const now = Date.now();
       const info = compute(now);
       const isPeak = info.isPeak;
-      const st = resolveStatus(info);
+      const st = resolveStatus(info, opts.model);
       const accent = isPeak ? COLORS.pink : COLORS.blue;
 
       ctx.save();
@@ -269,8 +279,8 @@ export function activate(context) {
       ctx.fillRect(body.x, body.y, body.w, body.h);
 
       // background image (cover fill)
-      if (cfg && cfg.background && CTX && CTX.assets) {
-        const bg = CTX.assets.image(cfg.background);
+      if (opts.background && CTX && CTX.assets) {
+        const bg = CTX.assets.image(opts.background);
         if (bg && bg.complete && bg.naturalWidth) {
           const s = Math.max(body.w / bg.naturalWidth, body.h / bg.naturalHeight);
           const dw = bg.naturalWidth * s, dh = bg.naturalHeight * s;
@@ -319,7 +329,7 @@ export function activate(context) {
       // M2: avatar + 梁文X
       const statusChar = st.ch;
       const base = '梁文';
-      if (cfg && cfg.showAvatar) {
+      if (opts.showAvatar) {
         const d = Math.min(iw, h2) * 0.42;
         const ax = cx, ay = y2 + d / 2 + h2 * 0.06;
         const img = getImage(state, info.frameIndex);
@@ -351,7 +361,7 @@ export function activate(context) {
       ctx.fillText(desc, cx, y3 + h3 / 2);
 
       // M4: 实时余量（未命中 / 命中 / 输出 · 模型）
-      const est = tokenEstimate();
+      const est = tokenEstimate(opts.model);
       const balLine = est.miss === null
         ? '余量未知'
         : '未命中 ' + fmtTokens(est.miss) + ' · 命中 ' + fmtTokens(est.hit) + ' · 输出 ' + fmtTokens(est.out);
@@ -360,9 +370,9 @@ export function activate(context) {
       ctx.fillText(balLine, cx, y4 + h4 * 0.38);
       ctx.fillStyle = COLORS.blue;
       ctx.font = Math.round(h4 * 0.26) + 'px "Microsoft YaHei UI", sans-serif';
-      ctx.fillText('模型 ' + (cfg ? cfg.model : 'flash'), cx, y4 + h4 * 0.72);
+      ctx.fillText('模型 ' + opts.model, cx, y4 + h4 * 0.72);
 
-      if (cfg && cfg.dim > 0) { ctx.fillStyle = 'rgba(0,0,0,' + cfg.dim + ')'; ctx.fillRect(body.x, body.y, body.w, body.h); }
+      if (opts.dim > 0) { ctx.fillStyle = 'rgba(0,0,0,' + opts.dim + ')'; ctx.fillRect(body.x, body.y, body.w, body.h); }
       ctx.restore();
     },
   });

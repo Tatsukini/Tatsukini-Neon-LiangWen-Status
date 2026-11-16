@@ -1,10 +1,10 @@
 {
   "name": "Tatsukini-Neon-LiangWen-Status",
   "id": "tatsukini-neon-liangwen-status",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "apiVersion": 1,
   "entry": "index.js",
-  "description": "仿桌面挂件的 DeepSeek 状态徽章：峰谷倒计时 + 31 档头像 + 梁文状态字 + 实时余额。API Key 等配置在插件管理器「设置」里填写，只存本机、不写入工程存档；联网查询余额失败时自动走本机代理。",
+  "description": "仿桌面挂件的 DeepSeek 状态徽章：峰谷倒计时 + 31 档头像 + 梁文状态字 + 实时余额。API Key/Base URL/轮询/超时在插件管理器「设置」里填写（只存本机、不写入工程存档）；模型/背景图/显示头像/压暗随模块保存在「模块专属」里调整。联网查询余额失败时自动走本机代理。",
   "author": "Tatsukini",
   "license": "MIT",
   "repository": "https://github.com/Tatsukini/Tatsukini-Neon-LiangWen-Status",
