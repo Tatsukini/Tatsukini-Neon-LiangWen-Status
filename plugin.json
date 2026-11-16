@@ -1,0 +1,13 @@
+{
+  "name": "Tatsukini-Neon-LiangWen-Status",
+  "id": "tatsukini-neon-liangwen-status",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "index.js",
+  "description": "DeepSeek 峰谷价状态徽章：梁文峰/谷 + 31 档头像 + 切换倒计时（纯本地计算，不联网、不读会话、不改账单）。",
+  "author": "Tatsukini",
+  "license": "MIT",
+  "repository": "https://github.com/Tatsukini/Tatsukini-Neon-LiangWen-Status",
+  "permissions": ["modules"],
+  "keywords": ["deepseek", "visualizer", "badge", "liangwen", "peak-valley"]
+}
