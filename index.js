@@ -1,7 +1,8 @@
-// NEON//SCOPE plugin: 梁文峰/谷 峰谷价状态徽章 (apiVersion 1)
-// Pure-local DeepSeek peak/valley calendar + 31-level avatar. No network, no API key.
-// Peak = Beijing time, Mon-Fri (non-holiday) 09:00-12:00 & 14:00-18:00; otherwise valley.
-// Avatar frames: MIT-licensed AI meme images, see THIRD-PARTY-NOTICES.md.
+// NEON//SCOPE plugin: 梁文 峰谷/DeepSeek 状态徽章 (apiVersion 1)
+// 完全仿照桌面挂件：五段式布局 + 实时余额 + 峰谷状态字。
+// 联网查询 DeepSeek /user/balance（context.net.fetch，CORS 失败自动走本机代理）；
+// API Key / 背景图等配置放在 context.settings，只存本机、不写入 .NEON 工程存档。
+// 峰/谷日历为纯本地计算；头像帧来自 MIT 许可 meme 图，见 THIRD-PARTY-NOTICES.md。
 
 const FRAMES = [
   'data:image/jpeg;base64,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',
@@ -96,6 +97,26 @@ function fmt(ms) {
   return h > 0 ? pad(h) + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
 }
 
+// ---- pricing (mirrors desktop Config.cs; CNY per 1,000,000 tokens) ----
+const PRICING = {
+  flash: { hit: 1.0, miss: 4.0, out: 16.0 },
+  pro:   { hit: 4.0, miss: 16.0, out: 64.0 },
+};
+const COLORS = {
+  pink: '#F48FB1', blue: '#81D4FA', yellow: '#FFEB3B', grayW: '#ECEFF1', grayD: '#616161', green: '#A5D6A7',
+  base: '#9E9E9E', desc: '#BDBDBD', white: '#FFFFFF',
+};
+const LOW_TOKEN_THRESHOLD = 1000000;
+const REVIVE_MS = 5000;
+
+function fmtTokens(n) {
+  if (!isFinite(n)) return '--';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return n.toFixed(0);
+}
+
 function getImage(state, i) {
   state.imgs = state.imgs || {};
   let im = state.imgs[i];
@@ -103,30 +124,159 @@ function getImage(state, i) {
   return im;
 }
 
+function clampNum(v, min, max, def) { v = Number(v); return isFinite(v) ? Math.min(max, Math.max(min, v)) : def; }
+
+function fitFont(ctx, text, maxWidth, px, minPx, bold) {
+  let size = px;
+  const set = (s) => { ctx.font = (bold ? 'bold ' : '') + Math.round(s) + 'px "Microsoft YaHei UI", sans-serif'; };
+  while (size > minPx) { set(size); if (ctx.measureText(text).width <= maxWidth) break; size -= Math.max(1, size * 0.06); }
+  set(size);
+  return size;
+}
+
+// ---- plugin runtime (module scope) ----
+let CTX = null;
+let cfg = null;
+let pollTimer = null;
+let unsubSettings = null;
+let wasDown = false;
+let reviveUntil = 0;
+const cache = { health: 'idle', balance: null, currency: null, detail: '等待查询…', latency: 0 };
+
+function readCfg() {
+  cfg = {
+    apiKey: String(CTX.settings.get('apiKey', '') || ''),
+    baseUrl: String(CTX.settings.get('baseUrl', 'https://api.deepseek.com') || 'https://api.deepseek.com'),
+    model: String(CTX.settings.get('model', 'flash') || 'flash'),
+    pollIntervalSec: clampNum(CTX.settings.get('pollIntervalSec', 60), 5, 600, 60),
+    timeoutSec: clampNum(CTX.settings.get('timeoutSec', 12), 1, 60, 12),
+    background: String(CTX.settings.get('background', '') || ''),
+    showAvatar: CTX.settings.get('showAvatar', true) !== false,
+    dim: clampNum(CTX.settings.get('dim', 0), 0, 60, 0) / 100,
+  };
+}
+
+function setCache(health, balance, currency, detail, latency) {
+  const now = Date.now();
+  if (health === 'down') { wasDown = true; }
+  else if (wasDown) { wasDown = false; reviveUntil = now + REVIVE_MS; }
+  cache.health = health; cache.balance = balance; cache.currency = currency; cache.detail = detail; cache.latency = latency;
+}
+
+function tokenEstimate() {
+  if (cache.balance === null) return { miss: null, hit: null, out: null };
+  const p = PRICING[cfg.model] || PRICING.flash;
+  return { miss: cache.balance * 1e6 / p.miss, hit: cache.balance * 1e6 / p.hit, out: cache.balance * 1e6 / p.out };
+}
+
+async function poll() {
+  if (!CTX.net || typeof CTX.net.fetch !== 'function') { setCache('unsupported', null, null, '宿主不支持联网', 0); return; }
+  if (!cfg.apiKey) { setCache('nokey', null, null, '未设置 API Key', 0); return; }
+  const url = cfg.baseUrl.replace(/\/+$/, '') + '/user/balance';
+  const t0 = Date.now();
+  try {
+    const resp = await CTX.net.fetch(url, { headers: { 'Authorization': 'Bearer ' + cfg.apiKey }, timeout: cfg.timeoutSec });
+    const latency = Date.now() - t0;
+    if (resp.status === 429) { setCache('crowded', null, null, '429 限流', latency); return; }
+    if (!resp.ok) { setCache('down', null, null, 'HTTP ' + resp.status, latency); return; }
+    const text = await resp.text();
+    let doc; try { doc = JSON.parse(text); } catch (e) { setCache('down', null, null, '解析失败', latency); return; }
+    if (doc && doc.error) { const m = (doc.error && doc.error.message) || String(doc.error); setCache('ok', null, null, '查询失败: ' + m, latency); return; }
+    let balance = null, currency = null;
+    if (typeof doc.total_balance === 'string') { const v = parseFloat(doc.total_balance); if (isFinite(v)) balance = v; }
+    if (typeof doc.currency === 'string') currency = doc.currency;
+    if (balance === null && Array.isArray(doc.balance_infos) && doc.balance_infos.length) {
+      let sum = 0, any = false;
+      for (const bi of doc.balance_infos) {
+        if (bi && typeof bi.total_balance === 'string') { const v = parseFloat(bi.total_balance); if (isFinite(v)) { sum += v; any = true; } }
+        if (!currency && bi && typeof bi.currency === 'string') currency = bi.currency;
+      }
+      if (any) balance = sum;
+    }
+    const health = latency >= 8000 ? 'crowded' : 'ok';
+    setCache(health, balance, currency, health === 'crowded' ? ('高延迟 ' + latency + 'ms') : ('正常 ' + latency + 'ms'), latency);
+  } catch (e) {
+    setCache('down', null, null, (e && e.message) || '请求失败', Date.now() - t0);
+  }
+}
+
+function schedulePoll() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (!cfg.apiKey) return;
+  pollTimer = setInterval(poll, Math.max(5, cfg.pollIntervalSec) * 1000);
+}
+
+function resolveStatus(info) {
+  const now = Date.now();
+  const est = tokenEstimate();
+  if (cache.health === 'down') return { ch: '崩', color: COLORS.grayD };
+  if (now < reviveUntil) return { ch: '活', color: COLORS.green };
+  if (cache.health === 'crowded') return { ch: '满', color: COLORS.yellow };
+  if (est.miss !== null && est.miss < LOW_TOKEN_THRESHOLD) return { ch: '停', color: COLORS.grayW };
+  if (!info.isPeak) return { ch: '谷', color: COLORS.blue };
+  return { ch: '峰', color: COLORS.pink };
+}
+
+function buildDescription(isPeak) {
+  const phase = isPeak ? '峰价时段' : '谷价时段';
+  const cur = cache.currency || 'CNY';
+  const bal = cache.balance === null ? '未知' : cache.balance.toFixed(2);
+  return cache.detail + ' · 余额 ' + bal + ' ' + cur + ' · ' + phase;
+}
+
 export function activate(context) {
+  CTX = context;
+  context.settings.define([
+    { key: 'apiKey', label: 'API Key', type: 'password', maxLength: 200, help: '只保存在本机，不写入工程存档' },
+    { key: 'baseUrl', label: 'Base URL', type: 'text', default: 'https://api.deepseek.com', maxLength: 200 },
+    { key: 'model', label: '模型', type: 'select', options: [['flash', 'flash'], ['pro', 'pro']], default: 'flash' },
+    { key: 'pollIntervalSec', label: '轮询间隔(秒)', type: 'number', min: 5, max: 600, default: 60 },
+    { key: 'timeoutSec', label: '超时(秒)', type: 'number', min: 1, max: 60, default: 12 },
+    { key: 'background', label: '背景图', type: 'image' },
+    { key: 'showAvatar', label: '显示头像', type: 'toggle', default: true },
+    { key: 'dim', label: '背景压暗', type: 'range', min: 0, max: 60, step: 5, default: 0, unit: '%' },
+  ]);
+  readCfg();
+
+  unsubSettings = context.settings.onChange(() => {
+    const prevKey = cfg.apiKey;
+    readCfg();
+    if (cfg.apiKey !== prevKey) { wasDown = false; reviveUntil = 0; }
+    schedulePoll();
+    poll();
+  });
+
+  poll();
+  schedulePoll();
+
   context.registerModule({
     id: 'liangwen-status',
-    name: '梁文峰/谷 状态',
+    name: '梁文 状态徽章',
     code: 'LIANGWEN',
     glyph: '梁',
-    about: 'DeepSeek 峰谷价状态徽章：仿桌面挂件五模块布局（倒计时 / 头像档位 / 梁文峰谷 / 时段描述 / API 充值），纯本地计算，不联网。',
+    about: '仿桌面挂件：峰谷倒计时 + 头像档位 + 梁文状态字 + 实时余额。配置在插件管理器「设置」里填写。',
     w: 300, h: 400, category: 'PLUGIN',
-    options: [
-      { key: 'showAvatar', label: '显示头像', type: 'toggle', default: true },
-      { key: 'dim', label: '背景压暗', type: 'range', min: 0, max: 60, step: 5, default: 0, unit: '%' },
-    ],
+    options: [],
     draw(ctx, mod, body, frame, state) {
       const now = Date.now();
       const info = compute(now);
       const isPeak = info.isPeak;
-      const PINK = '#F48FB1', BLUE = '#81D4FA', GRAY = '#9E9E9E', LGRAY = '#BDBDBD', WHITE = '#FFFFFF';
-      const accent = isPeak ? PINK : BLUE;
-      const showAvatar = mod.options?.showAvatar !== false;
-      const dim = Number(mod.options?.dim ?? 0) / 100;
+      const st = resolveStatus(info);
+      const accent = isPeak ? COLORS.pink : COLORS.blue;
 
       ctx.save();
       ctx.fillStyle = '#000';
       ctx.fillRect(body.x, body.y, body.w, body.h);
+
+      // background image (cover fill)
+      if (cfg && cfg.background && CTX && CTX.assets) {
+        const bg = CTX.assets.image(cfg.background);
+        if (bg && bg.complete && bg.naturalWidth) {
+          const s = Math.max(body.w / bg.naturalWidth, body.h / bg.naturalHeight);
+          const dw = bg.naturalWidth * s, dh = bg.naturalHeight * s;
+          ctx.drawImage(bg, body.x + (body.w - dw) / 2, body.y + (body.h - dh) / 2, dw, dh);
+        }
+      }
 
       const m = Math.max(6, body.w * 0.03);
       const gap = Math.max(4, body.h * 0.02);
@@ -138,7 +288,7 @@ export function activate(context) {
       const y1 = iy, y2 = y1 + h1 + gap, y3 = y2 + h2 + gap, y4 = y3 + h3 + gap;
 
       const grad = (i) => {
-        const t = i / 4;
+        const t = i / 3;
         const r = Math.round(0xF4 + (0x81 - 0xF4) * t);
         const g = Math.round(0x8F + (0xD4 - 0x8F) * t);
         const b = Math.round(0xB1 + (0xFA - 0xB1) * t);
@@ -149,23 +299,17 @@ export function activate(context) {
         ctx.lineWidth = lw; ctx.strokeStyle = color;
         ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
       };
-
-      const colGap = gap;
-      const w4 = (iw - colGap) / 2, w5 = w4;
-      const x5 = ix + w4 + colGap;
-
       panel(ix, y1, iw, h1, grad(0));
       panel(ix, y2, iw, h2, grad(1));
       panel(ix, y3, iw, h3, grad(2));
-      panel(ix, y4, w4, h4, grad(3));
-      panel(x5, y4, w5, h4, grad(4));
+      panel(ix, y4, iw, h4, grad(3));
 
       const cx = ix + iw / 2;
 
       // M1: 峰/谷 倒计时
       ctx.textBaseline = 'middle';
       ctx.font = Math.round(h1 * 0.42) + 'px "Microsoft YaHei UI", sans-serif';
-      const runs = [['峰', PINK], ['/', WHITE], ['谷', BLUE], [' 倒计时 ', WHITE], [fmt(info.remainMs), WHITE]];
+      const runs = [['峰', COLORS.pink], ['/', COLORS.white], ['谷', COLORS.blue], [' 倒计时 ', COLORS.white], [fmt(info.remainMs), COLORS.white]];
       let total = 0;
       for (const r of runs) total += ctx.measureText(r[0]).width;
       let sx = cx - total / 2;
@@ -173,9 +317,9 @@ export function activate(context) {
       for (const r of runs) { ctx.fillStyle = r[1]; ctx.fillText(r[0], sx, y1 + h1 / 2); sx += ctx.measureText(r[0]).width; }
 
       // M2: avatar + 梁文X
-      const statusChar = isPeak ? '峰' : '谷';
+      const statusChar = st.ch;
       const base = '梁文';
-      if (showAvatar) {
+      if (cfg && cfg.showAvatar) {
         const d = Math.min(iw, h2) * 0.42;
         const ax = cx, ay = y2 + d / 2 + h2 * 0.06;
         const img = getImage(state, info.frameIndex);
@@ -184,41 +328,47 @@ export function activate(context) {
         if (img && img.complete && img.naturalWidth) ctx.drawImage(img, ax - d / 2, ay - d / 2, d, d);
         else { ctx.fillStyle = '#111'; ctx.fillRect(ax - d / 2, ay - d / 2, d, d); }
         ctx.restore();
-        ctx.lineWidth = lw; ctx.strokeStyle = BLUE;
+        ctx.lineWidth = lw; ctx.strokeStyle = COLORS.blue;
         ctx.beginPath(); ctx.arc(ax, ay, d / 2, 0, Math.PI * 2); ctx.stroke();
-        ctx.font = 'bold ' + Math.round(h2 * 0.30) + 'px "Microsoft YaHei UI", sans-serif';
+        fitFont(ctx, base + statusChar, iw * 0.9, h2 * 0.30, h2 * 0.14, true);
         const bw = ctx.measureText(base).width, sw = ctx.measureText(statusChar).width;
         const startX = cx - (bw + sw) / 2, charY = ay + d / 2 + h2 * 0.22;
-        ctx.fillStyle = GRAY; ctx.fillText(base, startX, charY);
-        ctx.fillStyle = accent; ctx.fillText(statusChar, startX + bw, charY);
+        ctx.fillStyle = COLORS.base; ctx.fillText(base, startX, charY);
+        ctx.fillStyle = st.color; ctx.fillText(statusChar, startX + bw, charY);
       } else {
-        ctx.font = 'bold ' + Math.round(h2 * 0.34) + 'px "Microsoft YaHei UI", sans-serif';
+        fitFont(ctx, base + statusChar, iw * 0.9, h2 * 0.34, h2 * 0.16, true);
         const bw = ctx.measureText(base).width, sw = ctx.measureText(statusChar).width;
         const startX = cx - (bw + sw) / 2;
-        ctx.fillStyle = GRAY; ctx.fillText(base, startX, y2 + h2 / 2);
-        ctx.fillStyle = accent; ctx.fillText(statusChar, startX + bw, y2 + h2 / 2);
+        ctx.fillStyle = COLORS.base; ctx.fillText(base, startX, y2 + h2 / 2);
+        ctx.fillStyle = st.color; ctx.fillText(statusChar, startX + bw, y2 + h2 / 2);
       }
 
-      // M3: 时段描述（纯本地）
+      // M3: 状态描述
       ctx.textAlign = 'center';
-      ctx.fillStyle = LGRAY;
-      ctx.font = Math.round(h3 * 0.4) + 'px "Microsoft YaHei UI", sans-serif';
-      ctx.fillText(isPeak ? '当前：峰价时段' : '当前：谷价时段', cx, y3 + h3 / 2);
+      ctx.fillStyle = COLORS.desc;
+      const desc = buildDescription(isPeak);
+      fitFont(ctx, desc, iw * 0.92, h3 * 0.34, h3 * 0.16, false);
+      ctx.fillText(desc, cx, y3 + h3 / 2);
 
-      // M4: API 充值（静态标签，不可点击）
-      ctx.fillStyle = PINK;
-      ctx.font = Math.round(h4 * 0.4) + 'px "Microsoft YaHei UI", sans-serif';
-      ctx.fillText('API 充值', ix + w4 / 2, y4 + h4 / 2);
+      // M4: 实时余量（未命中 / 命中 / 输出 · 模型）
+      const est = tokenEstimate();
+      const balLine = est.miss === null
+        ? '余量未知'
+        : '未命中 ' + fmtTokens(est.miss) + ' · 命中 ' + fmtTokens(est.hit) + ' · 输出 ' + fmtTokens(est.out);
+      ctx.fillStyle = COLORS.white;
+      fitFont(ctx, balLine, iw * 0.92, h4 * 0.34, h4 * 0.16, false);
+      ctx.fillText(balLine, cx, y4 + h4 * 0.38);
+      ctx.fillStyle = COLORS.blue;
+      ctx.font = Math.round(h4 * 0.26) + 'px "Microsoft YaHei UI", sans-serif';
+      ctx.fillText('模型 ' + (cfg ? cfg.model : 'flash'), cx, y4 + h4 * 0.72);
 
-      // M5: 余额（需 API，插件模式不查询）
-      ctx.fillStyle = LGRAY;
-      ctx.font = Math.round(h4 * 0.34) + 'px "Microsoft YaHei UI", sans-serif';
-      ctx.fillText('余量：需 API', x5 + w5 / 2, y4 + h4 / 2);
-
-      if (dim > 0) { ctx.fillStyle = 'rgba(0,0,0,' + dim + ')'; ctx.fillRect(body.x, body.y, body.w, body.h); }
+      if (cfg && cfg.dim > 0) { ctx.fillStyle = 'rgba(0,0,0,' + cfg.dim + ')'; ctx.fillRect(body.x, body.y, body.w, body.h); }
       ctx.restore();
     },
   });
 }
 
-export function deactivate() {}
+export function deactivate() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (unsubSettings) { try { unsubSettings(); } catch (e) {} unsubSettings = null; }
+}
